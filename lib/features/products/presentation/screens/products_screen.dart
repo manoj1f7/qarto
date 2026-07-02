@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:qarto/features/cart/domain/entities/cart_item.dart';
+import 'package:qarto/features/cart/presentation/bloc/cart_bloc.dart';
+import 'package:qarto/features/cart/presentation/bloc/cart_event.dart';
 import 'package:qarto/features/products/domain/entities/product.dart';
 import 'package:qarto/features/products/presentation/bloc/product_bloc.dart';
 import 'package:qarto/features/products/presentation/bloc/product_event.dart';
 import 'package:qarto/features/products/presentation/bloc/product_state.dart';
+import 'package:qarto/features/products/presentation/widgets/category_selector.dart';
 import 'package:qarto/features/products/presentation/widgets/product_card.dart';
 import 'package:qarto/features/products/presentation/widgets/shimmer_product_card.dart';
 
@@ -14,67 +18,96 @@ class ProductsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: BlocBuilder<ProductBloc, ProductState>(
-        builder: (context, state) {
-          if (state is ProductLoading) {
-            // Replaced Spinner with a Shimmer Grid
-            return GridView.builder(
-              padding: const EdgeInsets.all(12),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                childAspectRatio: 0.7,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemCount: 6, // Show 6 dummy shimmer cards while loading
-              itemBuilder: (context, index) {
-                return const ShimmerProductCard();
-              },
-            );
-          } else if (state is ProductError) {
-            return Center(child: Text(state.message));
-          } else if (state is ProductLoaded) {
-            final products = state.products;
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      // Wrap everything in a Column so the Category Selector sits at the top
+      body: Column(
+        children: [
+          const SizedBox(height: 10),
+          // 1. THE CATEGORY TABS
+          const CategorySelector(),
+          const SizedBox(height: 10),
 
-            if (products.isEmpty) {
-              return const Center(child: Text('No products found.'));
-            }
-
-            return RefreshIndicator(
-              onRefresh: () async {
-                // Triggers the API call again
-                context.read<ProductBloc>().add(const LoadProducts());
-              },
-              child: GridView.builder(
-                padding: const EdgeInsets.all(12),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  childAspectRatio: 0.7,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                ),
-                itemCount: products.length,
-                itemBuilder: (context, index) {
-                  final product = products[index];
-
-                  return ProductCard(
-                    product: product,
-                    onTap: () {
-                      // Trigger the Bottom Sheet here!
-                      showProductDetailsSheet(context, product);
-                    },
-                    onAddToCart: () {
-                      // TODO: Trigger CartBloc Add event
-                    },
+          // 2. THE PRODUCT GRID (Expanded to take remaining space)
+          Expanded(
+            child: BlocBuilder<ProductBloc, ProductState>(
+              builder: (context, state) {
+                if (state is ProductLoading) {
+                  return GridView.builder(
+                    padding: const EdgeInsets.all(12),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      childAspectRatio: 0.7,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                    ),
+                    itemCount: 6,
+                    itemBuilder: (context, index) => const ShimmerProductCard(),
                   );
-                },
-              ),
-            );
-          }
+                } else if (state is ProductError) {
+                  return Center(child: Text(state.message));
+                } else if (state is ProductLoaded) {
+                  final products = state.products;
 
-          return const SizedBox.shrink();
-        },
+                  if (products.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No products found in this category.',
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
+                      ),
+                    );
+                  }
+
+                  return RefreshIndicator(
+                    color: Theme.of(context).colorScheme.primary,
+                    onRefresh: () async {
+                      context.read<ProductBloc>().add(const LoadProducts());
+                    },
+                    child: GridView.builder(
+                      padding: const EdgeInsets.all(12),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        childAspectRatio: 0.7,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                      ),
+                      itemCount: products.length,
+                      itemBuilder: (context, index) {
+                        final product = products[index];
+                        return ProductCard(
+                          product: product,
+                          onTap: () {
+                            showProductDetailsSheet(context, product);
+                          },
+                          onAddToCart: () {
+                            context.read<CartBloc>().add(
+                              AddToCart(
+                                CartItem(
+                                  productId: product.id,
+                                  title: product.title,
+                                  price: product.price,
+                                  imageUrl: product.imageUrl,
+                                  quantity: 1,
+                                ),
+                              ),
+                            );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('${product.title} added to cart'),
+                                duration: const Duration(seconds: 1),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -243,8 +276,26 @@ void showProductDetailsSheet(BuildContext context, Product product) {
                     // Now it will automatically inherit the beautiful monochrome
                     // ElevatedButtonThemeData we defined in AppTheme.
                     onPressed: () {
-                      // TODO: Dispatch AddToCart Event to CartBloc
+                      context.read<CartBloc>().add(
+                        AddToCart(
+                          CartItem(
+                            productId: product.id,
+                            title: product.title,
+                            price: product.price,
+                            imageUrl: product.imageUrl,
+                            quantity: 1,
+                          ),
+                        ),
+                      );
                       Navigator.pop(context);
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${product.title} added to cart'),
+                          duration: const Duration(seconds: 1),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
                     },
                     child: const Text(
                       'ADD TO CART',

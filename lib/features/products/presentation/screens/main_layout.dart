@@ -3,6 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_nav_bar/google_nav_bar.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:qarto/core/theme/theme_cubit.dart';
+import 'package:qarto/features/cart/presentation/bloc/cart_bloc.dart';
+import 'package:qarto/features/cart/presentation/bloc/cart_state.dart';
+import 'package:qarto/features/cart/presentation/screens/cart_screen.dart';
 import 'package:qarto/features/products/presentation/bloc/product_bloc.dart';
 import 'package:qarto/features/products/presentation/bloc/product_event.dart';
 import 'package:qarto/features/products/presentation/bloc/product_state.dart';
@@ -19,10 +22,7 @@ class MainLayout extends StatefulWidget {
 class _MainLayoutState extends State<MainLayout> {
   int _selectedIndex = 0;
 
-  static const List<Widget> _screens = <Widget>[
-    ProductsScreen(),
-    Center(child: Text('Cart Screen Coming Soon')),
-  ];
+  static const List<Widget> _screens = <Widget>[ProductsScreen(), CartScreen()];
 
   void _showSearchBottomSheet(BuildContext context) {
     // Grab the bloc before opening the sheet
@@ -220,9 +220,27 @@ class _MainLayoutState extends State<MainLayout> {
               duration: const Duration(milliseconds: 400),
               tabBackgroundColor: theme.colorScheme.primary,
               color: theme.iconTheme.color,
-              tabs: const [
-                GButton(icon: Icons.storefront_outlined, text: 'Store'),
-                GButton(icon: Icons.shopping_bag_outlined, text: 'Cart'),
+              tabs: [
+                const GButton(icon: Icons.storefront_outlined, text: 'Store'),
+                GButton(
+                  icon: Icons.shopping_bag_outlined,
+                  text: 'Cart',
+                  leading: BlocBuilder<CartBloc, CartState>(
+                    builder: (context, state) {
+                      final count = state is CartLoaded ? state.totalItemCount : 0;
+                      return Badge(
+                        label: Text('$count'),
+                        isLabelVisible: count > 0,
+                        child: Icon(
+                          Icons.shopping_bag_outlined,
+                          color: _selectedIndex == 1
+                              ? theme.colorScheme.onPrimary
+                              : theme.iconTheme.color,
+                        ),
+                      );
+                    },
+                  ),
+                ),
               ],
               selectedIndex: _selectedIndex,
               onTabChange: (index) {
