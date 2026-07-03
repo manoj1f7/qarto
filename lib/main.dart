@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/adapters.dart';
+import 'package:qarto/core/utils/global_messenger.dart';
 import 'package:qarto/features/cart/data/models/cart_item_model.dart';
 import 'package:qarto/features/cart/presentation/bloc/cart_bloc.dart';
 import 'package:qarto/features/cart/presentation/bloc/cart_event.dart';
@@ -37,6 +38,7 @@ class QartoApp extends StatelessWidget {
       child: BlocBuilder<ThemeCubit, ThemeMode>(
         builder: (context, themeMode) {
           return MaterialApp(
+            scaffoldMessengerKey: scaffoldMessengerKey,
             title: 'Qarto E-Commerce',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,

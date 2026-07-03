@@ -11,6 +11,10 @@ class LoadProducts extends ProductEvent {
   const LoadProducts();
 }
 
+class LoadMoreProducts extends ProductEvent {
+  const LoadMoreProducts();
+}
+
 class LoadProductsByCategory extends ProductEvent {
   final String category;
   const LoadProductsByCategory(this.category);

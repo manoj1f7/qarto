@@ -13,11 +13,17 @@ class ProductInitial extends ProductState {}
 class ProductLoading extends ProductState {}
 
 class ProductLoaded extends ProductState {
-  final List<Product> products;
-  const ProductLoaded(this.products);
+  final List<Product> allProducts; // full fetched list
+  final int displayedCount; // how many currently shown
+
+  const ProductLoaded(this.allProducts, {this.displayedCount = 6});
+
+  List<Product> get visibleProducts => allProducts.take(displayedCount).toList();
+
+  bool get hasMore => displayedCount < allProducts.length;
 
   @override
-  List<Object?> get props => [products];
+  List<Object?> get props => [allProducts, displayedCount];
 }
 
 class ProductError extends ProductState {

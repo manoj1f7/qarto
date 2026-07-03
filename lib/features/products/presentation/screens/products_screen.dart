@@ -12,8 +12,34 @@ import 'package:qarto/features/products/presentation/widgets/category_selector.d
 import 'package:qarto/features/products/presentation/widgets/product_card.dart';
 import 'package:qarto/features/products/presentation/widgets/shimmer_product_card.dart';
 
-class ProductsScreen extends StatelessWidget {
+class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
+
+  @override
+  State<ProductsScreen> createState() => _ProductsScreenState();
+}
+
+class _ProductsScreenState extends State<ProductsScreen> {
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      context.read<ProductBloc>().add(const LoadMoreProducts());
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +59,7 @@ class ProductsScreen extends StatelessWidget {
               builder: (context, state) {
                 if (state is ProductLoading) {
                   return GridView.builder(
+                    controller: _scrollController,
                     padding: const EdgeInsets.all(12),
                     gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                       crossAxisCount: 2,
@@ -46,7 +73,7 @@ class ProductsScreen extends StatelessWidget {
                 } else if (state is ProductError) {
                   return Center(child: Text(state.message));
                 } else if (state is ProductLoaded) {
-                  final products = state.products;
+                  final products = state.visibleProducts;
 
                   if (products.isEmpty) {
                     return Center(
@@ -63,6 +90,7 @@ class ProductsScreen extends StatelessWidget {
                       context.read<ProductBloc>().add(const LoadProducts());
                     },
                     child: GridView.builder(
+                      controller: _scrollController,
                       padding: const EdgeInsets.all(12),
                       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                         crossAxisCount: 2,

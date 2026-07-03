@@ -96,7 +96,7 @@ class _MainLayoutState extends State<MainLayout> {
                           child: CircularProgressIndicator(color: theme.colorScheme.primary),
                         );
                       } else if (state is ProductLoaded) {
-                        if (state.products.isEmpty) {
+                        if (state.visibleProducts.isEmpty) {
                           return Center(
                             child: Text(
                               'No products found.',
@@ -107,9 +107,9 @@ class _MainLayoutState extends State<MainLayout> {
 
                         // Display results as a compact list
                         return ListView.builder(
-                          itemCount: state.products.length,
+                          itemCount: state.visibleProducts.length,
                           itemBuilder: (context, index) {
-                            final product = state.products[index];
+                            final product = state.visibleProducts[index];
                             return ListTile(
                               contentPadding: const EdgeInsets.symmetric(vertical: 8),
                               leading: Container(

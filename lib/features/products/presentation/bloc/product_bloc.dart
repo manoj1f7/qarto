@@ -9,6 +9,8 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
 
   ProductBloc(this.repository) : super(ProductInitial()) {
     on<LoadProducts>(_onLoadProducts);
+    on<LoadMoreProducts>(_onLoadMoreProducts);
+
     on<LoadProductsByCategory>(_onLoadProductsByCategory);
 
     // Register the Search event with a debounce transformer
@@ -52,6 +54,15 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
       (failure) => emit(ProductError(failure.message)),
       (products) => emit(ProductLoaded(products)),
     );
+  }
+
+  void _onLoadMoreProducts(LoadMoreProducts event, Emitter<ProductState> emit) {
+    final currentState = state;
+    if (currentState is ProductLoaded && currentState.hasMore) {
+      emit(
+        ProductLoaded(currentState.allProducts, displayedCount: currentState.displayedCount + 6),
+      );
+    }
   }
 
   Future<void> _onLoadProductsByCategory(
